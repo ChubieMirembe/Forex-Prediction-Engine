@@ -263,7 +263,131 @@ cm = confusion_matrix(y_test, y_pred)
 print(cm)
 accuracy_score(y_test, y_pred)
 
+
+
+
+
+
+
 #DTW                
+
+dataset_test = pd.read_csv('AUDUSD60(test).csv', delimiter='\t', 
+                      names=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'], 
+                      parse_dates=['Date'])
+dataset_test = dataset_test.drop(['Open', 'High', 'Low', 'Volume'], axis=1)
+dataset_test = dataset_test.drop(dataset_test.index[9973:])
+dataset_test = dataset_test.drop(dataset_test.index[0:9291])
+dataset_test.reset_index(drop=True, inplace=True)
+dataset_test = dataset_test.set_index('Date')
+
+s_test = pd.Series(dataset_test['Close'], index=pd.date_range('2020-12-04', '2021-01-17', freq='W'))
+e_test = pd.Series(dataset_test['Close'], index=pd.date_range('2020-12-06', '2021-01-23', freq='W-SAT'))
+
+group_test = []
+for d in range(0, len(s_test)):
+    start = s_test.index[d]
+    end = e_test.index[d]
+    data_test = (dataset_test[start:end])
+    data_test.reset_index(level=0, inplace=True)
+    if len(data_test) < 120: continue
+    else: group_test.append(data_test)
+
+scaler = MinMaxScaler(feature_range = (-1, 1))
+
+regressor_test = LinearRegression()
+for g in range(0,len(group_test)):
+    X = np.reshape(group_test[g].index, (120,-1))        
+    regressor_test.fit(X, group_test[g]['Close'])
+    yi = regressor_test.predict(X)
+    group_test[g]['Distance'] = group_test[g]['Close'].values - yi   
+    res = group_test[g]['Distance'].values.reshape(-1,1)
+    group_test[g]['Distance'] = scaler.fit_transform(res)    
+    plt.bar(group_test[g].index, group_test[g]['Distance'])
+    plt.title('Group_test {}'.format(g))
+    plt.show()
+    
+pattern_test = []
+minArea = 5
+for i in range(0, len(group_test)):
+    checkA = 0
+    checkB = 0
+    halfA = []
+    halfB = []
+    positiveC = 0
+    negativeC = 0
+    for di in range(0, len(group_test[i])):
+            if group_test[i]['Distance'][di] < 0:  
+                if checkA == 0:
+                    if len(halfB) < minArea:
+                        halfA.clear()
+                        halfB.clear()
+                        halfA.append(group_test[i].iloc[di])
+                        checkA += 1
+                        checkB = 0
+                    else:
+                        if len(halfA) < minArea:
+                            halfA.clear()
+                            # halfB.clear()
+                            halfA.append(group_test[i].iloc[di])
+                            checkA += 1
+                            checkB = 0
+                        else:
+                            full = halfA + halfB
+                            pattern_test.append(full)
+                            halfA.clear()
+                            halfB.clear()
+                            # full.clear()
+                            halfA.append(group_test[i].iloc[di])
+                            checkA += 1 
+                            checkB = 0
+                else:
+                    halfA.append(group_test[i].iloc[di])
+                    checkB = 0
+            
+            elif group_test[i]['Distance'][di] > 0:
+                if checkB == 0:
+                    if len(halfA) < minArea:
+                        halfA.clear()
+                        halfB.clear()
+                        halfB.append(group_test[i].iloc[di])
+                        checkB += 1
+                        checkA = 0
+                    else:
+                        if len(halfB) < minArea:
+                            # halfA.clear()
+                            halfB.clear()
+                            halfB.append(group_test[i].iloc[di])
+                            checkB += 1
+                            checkA = 0
+                        else:
+                            full = halfB + halfA
+                            pattern_test.append(full)
+                            halfA.clear()
+                            halfB.clear()
+                            # full.clear()
+                            halfB.append(group_test[i].iloc[di])
+                            checkB += 1
+                            checkA = 0
+                else:
+                    halfB.append(group_test[i].iloc[di])
+                    checkA = 0
+
+for pat in range(0,len(pattern_test)):
+    ps = pd.DataFrame(pattern_test[pat], columns = ['Date', 'Close', 'Distance'])
+    ps.reset_index(level=0, inplace=True)
+    plt.bar(ps.index, ps['Distance'])
+    plt.title('Pattern: {}'.format(pat))
+    plt.show()     
+
+
+
+
+
+
+
+
+
+
 
 
 
