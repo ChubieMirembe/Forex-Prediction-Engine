@@ -231,6 +231,7 @@ for p in range(0, len(pattern)):
 
 
 ## Test pattern 
+'''
 dataset_test = pd.read_csv('AUDUSD60test.csv', delimiter='\t', 
                       names=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
 # parse_dates=['Date']
@@ -239,7 +240,14 @@ dataset_test = dataset_test.drop(dataset_test.index[0:880])
 dataset_test['Date'] = pd.to_datetime(dataset_test['Date'])
 dataset_test.reset_index(drop=True, inplace=True)
 # dataset_test = dataset_test.set_index('Date')
+'''
 
+dataset_test = pd.read_csv('AUDUSD60test(new).csv', 
+                      names=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+dataset_test = dataset_test.drop(['Open', 'High', 'Low', 'Volume'], axis=1)
+dataset_test = dataset_test.drop(dataset_test.index[0:41])
+dataset_test['Date'] = pd.to_datetime(dataset_test['Date'])
+dataset_test.reset_index(drop=True, inplace=True)
 
 scaler = MinMaxScaler(feature_range = (-1, 1))
 regressor_test = LinearRegression()
@@ -414,30 +422,36 @@ for x in range(len(dataset)):
         move4 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+4]['Close']) * 10000, 2)
         move5 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+5]['Close']) * 10000, 2)
         
-        if abs(move1) >= cATR * 2:
-            if move1 < 0:
-                print('ATR is {}, Price ROSE by {} pips on the first move'.format(cATR, abs(move1)))
-            else: print('ATR is {}, Price FELL by {} pips on the first move'.format(cATR, abs(move1)))
+        if s_path <3:
+            if abs(move1) >= cATR * 2:
+                if move1 < 0:
+                    print('ATR is {}, Price ROSE by {} pips on the first move'.format(cATR, abs(move1)))
+                else: print('ATR is {}, Price FELL by {} pips on the first move'.format(cATR, abs(move1)))
+                
+            elif abs(move2) >= cATR * 2:
+                if move2 < 0:
+                    print('ATR is {}, Price ROSE by {} pips on the second move'.format(cATR, abs(move2)))
+                else: print('ATR is {}, Price FELL by {} pips on the second move'.format(cATR, abs(move2)))
             
-        elif abs(move2) >= cATR * 2:
-            if move2 < 0:
-                print('ATR is {}, Price ROSE by {} pips on the second move'.format(cATR, abs(move2)))
-            else: print('ATR is {}, Price FELL by {} pips on the second move'.format(cATR, abs(move2)))
-        
-        elif abs(move3) >= cATR * 2:
-            if move3 < 0:
-                print('ATR is {}, Price ROSE by {} pips on the third move'.format(cATR, abs(move3)))
-            else: print('ATR is {}, Price FELL by {} pips on the third move'.format(cATR, abs(move3)))
-        
-        elif abs(move4) >= cATR * 2:
-            if move4 < 0:
-                print('ATR is {}, Price ROSE by {} pips on the fourth move'.format(cATR, abs(move4)))
-            else: print('ATR is {}, Price FELL by {} pips on the fouth move'.format(cATR, abs(move4)))
+            elif abs(move3) >= cATR * 2:
+                if move3 < 0:
+                    print('ATR is {}, Price ROSE by {} pips on the third move'.format(cATR, abs(move3)))
+                else: print('ATR is {}, Price FELL by {} pips on the third move'.format(cATR, abs(move3)))
             
-        elif abs(move5) >= cATR * 2:
-            if move2 < 0:
-                print('ATR is {}, Price ROSE by {} pips on the fifth move'.format(cATR, abs(move5)))
-            else: print('ATR is {}, Price FELL by {} pips on the fifth move'.format(cATR, abs(move5)))
+            elif abs(move4) >= cATR * 2:
+                if move4 < 0:
+                    print('ATR is {}, Price ROSE by {} pips on the fourth move'.format(cATR, abs(move4)))
+                else: print('ATR is {}, Price FELL by {} pips on the fouth move'.format(cATR, abs(move4)))
+                
+            elif abs(move5) >= cATR * 2:
+                if move2 < 0:
+                    print('ATR is {}, Price ROSE by {} pips on the fifth move'.format(cATR, abs(move5)))
+                else: print('ATR is {}, Price FELL by {} pips on the fifth move'.format(cATR, abs(move5)))
+            
+            else: print('NO TRADE!!')
+        
+        else:
+            print('NO TRADE!!')
             
             
             
