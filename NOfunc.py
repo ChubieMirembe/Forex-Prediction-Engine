@@ -269,269 +269,285 @@ AP = allPatterns + allPattern2 + allPattern3
 
                     
 ## TEST!!
-
-dataset_test = pd.read_csv('AU.csv', skiprows=1,
-                      names=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-dataset_test = dataset_test.drop(['Open', 'High', 'Low', 'Volume'], axis=1)
-# dataset_test = dataset_test.drop(dataset_test.index[0:41])
-dataset_test = dataset_test.tail(60)
-dataset_test['Date'] = pd.to_datetime(dataset_test['Date'])
-dataset_test.reset_index(drop=True, inplace=True)
-
-scaler = MinMaxScaler(feature_range = (-1, 1))
-regressor_test = LinearRegression()
+def test(str, w_size):
+    dataset_test = pd.read_csv(str, skiprows=1,
+                           names=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+    dataset_test = dataset_test.drop(['Open', 'High', 'Low', 'Volume'], axis=1)
+    dataset_test = dataset_test.tail(w_size)
+    dataset_test['Date'] = pd.to_datetime(dataset_test['Date'])
+    dataset_test.reset_index(drop=True, inplace=True)
     
-X = np.reshape(dataset_test.index, (60,-1))        
-regressor_test.fit(X, dataset_test['Close'])
-yi = regressor_test.predict(X)
-dataset_test['Distance'] = dataset_test['Close'].values - yi   
-res = dataset_test['Distance'].values.reshape(-1,1)
-dataset_test['Distance'] = scaler.fit_transform(res)    
-plt.bar(dataset_test.index, dataset_test['Distance'])
-plt.show()
-
-checkA = 0
-checkB = 0
-halfA = []
-halfB = []
-minArea = 5
-pattern_test = []
-for di in range(len(dataset_test) - 1, 0, -1):
-            if dataset_test['Distance'][di] < 0:  
-                if checkA == 0:
-                    if len(halfB) < minArea:
-                        halfA.clear()
-                        halfB.clear()
-                        halfA.append(dataset_test.iloc[di])
-                        checkA += 1
-                        checkB = 0
-                    else:
-                        if len(halfA) < minArea:
+    scaler = MinMaxScaler(feature_range = (-1, 1))
+    regressor_test = LinearRegression()
+        
+    X = np.reshape(dataset_test.index, (w_size,-1))        
+    regressor_test.fit(X, dataset_test['Close'])
+    yi = regressor_test.predict(X)
+    dataset_test['Distance'] = dataset_test['Close'].values - yi   
+    res = dataset_test['Distance'].values.reshape(-1,1)
+    dataset_test['Distance'] = scaler.fit_transform(res)    
+    plt.bar(dataset_test.index, dataset_test['Distance'])
+    plt.show()
+    
+    checkA = 0
+    checkB = 0
+    halfA = []
+    halfB = []
+    minArea = 5
+    pattern_test = []
+    for di in range(len(dataset_test) - 1, 0, -1):
+                if dataset_test['Distance'][di] < 0:  
+                    if checkA == 0:
+                        if len(halfB) < minArea:
                             halfA.clear()
+                            halfB.clear()
                             halfA.append(dataset_test.iloc[di])
                             checkA += 1
                             checkB = 0
                         else:
-                            full = halfA + halfB
-                            pattern_test.append(full)
-                            halfA.clear()
-                            halfB.clear()
-                            halfA.append(dataset_test.iloc[di])
-                            checkA += 1 
-                            checkB = 0
-                else:
-                    halfA.append(dataset_test.iloc[di])
-                    checkB = 0
-            
-            elif dataset_test['Distance'][di] > 0:
-                if checkB == 0:
-                    if len(halfA) < minArea:
-                        halfA.clear()
-                        halfB.clear()
-                        halfB.append(dataset_test.iloc[di])
-                        checkB += 1
-                        checkA = 0
+                            if len(halfA) < minArea:
+                                halfA.clear()
+                                halfA.append(dataset_test.iloc[di])
+                                checkA += 1
+                                checkB = 0
+                            else:
+                                full = halfA + halfB
+                                pattern_test.append(full)
+                                halfA.clear()
+                                halfB.clear()
+                                halfA.append(dataset_test.iloc[di])
+                                checkA += 1 
+                                checkB = 0
                     else:
-                        if len(halfB) < minArea:
+                        halfA.append(dataset_test.iloc[di])
+                        checkB = 0
+                
+                elif dataset_test['Distance'][di] > 0:
+                    if checkB == 0:
+                        if len(halfA) < minArea:
+                            halfA.clear()
                             halfB.clear()
                             halfB.append(dataset_test.iloc[di])
                             checkB += 1
                             checkA = 0
                         else:
-                            full = halfB + halfA
-                            pattern_test.append(full)
-                            halfA.clear()
-                            halfB.clear()
-                            halfB.append(dataset_test.iloc[di])
-                            checkB += 1
-                            checkA = 0
-                else:
-                    halfB.append(dataset_test.iloc[di])
-                    checkA = 0
+                            if len(halfB) < minArea:
+                                halfB.clear()
+                                halfB.append(dataset_test.iloc[di])
+                                checkB += 1
+                                checkA = 0
+                            else:
+                                full = halfB + halfA
+                                pattern_test.append(full)
+                                halfA.clear()
+                                halfB.clear()
+                                halfB.append(dataset_test.iloc[di])
+                                checkB += 1
+                                checkA = 0
+                    else:
+                        halfB.append(dataset_test.iloc[di])
+                        checkA = 0
+                        
+    
+    # Reversing the pattern
+    for x in pattern_test:
+        x.reverse()
+                        
+    if len(pattern_test) == 0 or pattern_test[0][-1]['Date'] != dataset_test.iloc[-1]['Date']:
+        print('NO TRADE!! - {}'.format(w_size))
+    else:
+        ps = pd.DataFrame(pattern_test[0], columns = ['Date', 'Close', 'Distance'])
+        ps.reset_index(level=0, inplace=True)
+        plt.bar(ps.index, ps['Distance'])
+        plt.title('Pattern_test')
+        plt.show()  
+        
+        
+        column = ['F1', 'F2', 'A1', 'F3', 'F4', 'A2', 'T']
+        features_test = pd.DataFrame(index = range(0, len(pattern_test)), columns=column)
+        
+        
+        ps = pd.DataFrame(pattern_test[0], columns = ['Date', 'Close', 'Distance'])
+        pH = []
+        nH = []
+            
+        for d in range(0, len(ps)):
+            if ps.iloc[d]['Distance'] > 0: pH.append(ps.iloc[d]['Distance'])
+            elif ps.iloc[d]['Distance'] < 0: nH.append(ps.iloc[d]['Distance'])
+            
+        if ps.iloc[0]['Distance'] > 0:
+            features_test.iloc[0]['T'] = 0
+            highest_point = max(pH)
+            lowest_point = min(nH)
+            
+            if highest_point > pH[0]: features_test.iloc[0]['F1'] = 1
+            elif highest_point == pH[0]: features_test.iloc[0]['F1'] = 2
+                
+            if highest_point > pH[-1]: features_test.iloc[0]['F2'] = 3
+            elif highest_point == pH[-1]: features_test.iloc[0]['F2'] = 2
+               
+            if nH[0] > lowest_point: features_test.iloc[0]['F3'] = 3
+            elif nH[0] == lowest_point: features_test.iloc[0]['F3'] = 2
                     
-
-# Reversing the pattern
-for x in pattern_test:
-    x.reverse()
+            if nH[-1] > lowest_point: features_test.iloc[0]['F4'] = 1
+            elif nH[-1] == lowest_point: features_test.iloc[0]['F4'] = 2
                     
-for pat in range(0,len(pattern_test)):
-    ps = pd.DataFrame(pattern_test[pat], columns = ['Date', 'Close', 'Distance'])
-    ps.reset_index(level=0, inplace=True)
-    plt.bar(ps.index, ps['Distance'])
-    plt.title('Pattern_test: {}'.format(pat))
-    plt.show() 
-
-
-column = ['F1', 'F2', 'A1', 'F3', 'F4', 'A2', 'T']
-features_test = pd.DataFrame(index = range(0, len(pattern_test)), columns=column)
-
-
-ps = pd.DataFrame(pattern_test[0], columns = ['Date', 'Close', 'Distance'])
-pH = []
-nH = []
-    
-for d in range(0, len(ps)):
-    if ps.iloc[d]['Distance'] > 0: pH.append(ps.iloc[d]['Distance'])
-    elif ps.iloc[d]['Distance'] < 0: nH.append(ps.iloc[d]['Distance'])
-    
-if ps.iloc[0]['Distance'] > 0:
-    features_test.iloc[0]['T'] = 0
-    highest_point = max(pH)
-    lowest_point = min(nH)
-    
-    if highest_point > pH[0]: features_test.iloc[0]['F1'] = 1
-    elif highest_point == pH[0]: features_test.iloc[0]['F1'] = 2
-        
-    if highest_point > pH[-1]: features_test.iloc[0]['F2'] = 3
-    elif highest_point == pH[-1]: features_test.iloc[0]['F2'] = 2
-       
-    if nH[0] > lowest_point: features_test.iloc[0]['F3'] = 3
-    elif nH[0] == lowest_point: features_test.iloc[0]['F3'] = 2
+            features_test.iloc[0]['A1'] = round((round(abs(sum(pH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
+            features_test.iloc[0]['A2'] = round((round(abs(sum(nH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
             
-    if nH[-1] > lowest_point: features_test.iloc[0]['F4'] = 1
-    elif nH[-1] == lowest_point: features_test.iloc[0]['F4'] = 2
+        elif ps.iloc[0]['Distance'] < 0:
+            features_test.iloc[0]['T'] = 1
+            highest_point = max(pH)
+            lowest_point = min(nH)
+                
+            if nH[0] == lowest_point: features_test.iloc[0]['F1'] = 2 
+            elif nH[0] > lowest_point: features_test.iloc[0]['F1'] = 3
             
-    features_test.iloc[0]['A1'] = round((round(abs(sum(pH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
-    features_test.iloc[0]['A2'] = round((round(abs(sum(nH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
-    
-elif ps.iloc[0]['Distance'] < 0:
-    features_test.iloc[0]['T'] = 1
-    highest_point = max(pH)
-    lowest_point = min(nH)
+            if nH[-1] > lowest_point: features_test.iloc[0]['F2'] = 1 
+            elif nH[-1] == lowest_point: features_test.iloc[0]['F2'] = 2
+                
+            if highest_point > pH[0]: features_test.iloc[0]['F3'] = 1
+            elif highest_point == pH[0]: features_test.iloc[0]['F3'] = 2 
+                
+            if highest_point > pH[-1]: features_test.iloc[0]['F4'] = 3
+            elif highest_point == pH[-1]: features_test.iloc[0]['F4'] = 2
         
-    if nH[0] == lowest_point: features_test.iloc[0]['F1'] = 2 
-    elif nH[0] > lowest_point: features_test.iloc[0]['F1'] = 3
-    
-    if nH[-1] > lowest_point: features_test.iloc[0]['F2'] = 1 
-    elif nH[-1] == lowest_point: features_test.iloc[0]['F2'] = 2
+            features_test.iloc[0]['A1'] = round((round(abs(sum(nH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
+            features_test.iloc[0]['A2'] = round((round(abs(sum(pH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
         
-    if highest_point > pH[0]: features_test.iloc[0]['F3'] = 1
-    elif highest_point == pH[0]: features_test.iloc[0]['F3'] = 2 
+        test_pattern = []
+        dist_list = []
+        pattern_number = []
+        for val in range (len(pattern_test[0])): test_pattern.append(pattern_test[0][val]['Distance'])
         
-    if highest_point > pH[-1]: features_test.iloc[0]['F4'] = 3
-    elif highest_point == pH[-1]: features_test.iloc[0]['F4'] = 2
-
-    features_test.iloc[0]['A1'] = round((round(abs(sum(nH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
-    features_test.iloc[0]['A2'] = round((round(abs(sum(pH)), 1) / ((round(abs(sum(pH)), 1)) + (round(abs(sum(nH)), 1)))) * 10, 1)
-
-test_pattern = []
-dist_list = []
-pattern_number = []
-for val in range (len(pattern_test[0])): test_pattern.append(pattern_test[0][val]['Distance'])
-
-
-
-for t in range(len(allFeatures)): 
-    known_pattern = []
-    if features_test.iloc[0]['T'] == allFeatures.iloc[t]['T']:
-        for val in range (len(AP[t])):
-            known_pattern.append(AP[t][val]['Distance'])
+        
+        
+        for t in range(len(allFeatures)): 
+            known_pattern = []
+            if features_test.iloc[0]['T'] == allFeatures.iloc[t]['T']:
+                for val in range (len(AP[t])):
+                    known_pattern.append(AP[t][val]['Distance'])
+                    
+                x = np.array(test_pattern)
+                y = np.array(known_pattern)
+                
+                distance, path = fastdtw(x, y, dist=euclidean)
+                dist_list.append(distance)
+                pattern_number.append(t)
             
+            else: continue
+            
+        s_path = min(dist_list)
+        p_numb = (pattern_number[(dist_list.index(s_path))])
+        
+        
+        ps = pd.DataFrame(AP[p_numb], columns = ['Date', 'Close', 'Distance'])
+        ps.reset_index(level=0, inplace=True)
+        plt.bar(ps.index, ps['Distance'])
+        plt.title('Pattern Number: {}'.format(p_numb))
+        plt.show() 
+        
+        '''
+        def dtw(s, t):
+            n, m = len(s), len(t)
+            dtw_matrix = np.zeros((n+1, m+1))
+            for i in range(n+1):
+                for j in range(m+1):
+                    dtw_matrix[i, j] = np.inf
+            dtw_matrix[0, 0] = 0
+            
+            for i in range(1, n+1):
+                for j in range(1, m+1):
+                    cost = abs(s[i-1] - t[j-1])
+                    # take last min from a square box
+                    last_min = np.min([dtw_matrix[i-1, j], dtw_matrix[i, j-1], dtw_matrix[i-1, j-1]])
+                    dtw_matrix[i, j] = cost + last_min
+            return dtw_matrix
+    
+        
+        kp = []
+        for val in range (len(AP[p_numb])): kp.append(AP[p_numb][val]['Distance'])
+        # track = dtw(test_pattern, kp)
+        
         x = np.array(test_pattern)
-        y = np.array(known_pattern)
-        
+        y = np.array(kp)
+                
         distance, path = fastdtw(x, y, dist=euclidean)
-        dist_list.append(distance)
-        pattern_number.append(t)
-    
-    else: continue
-    
-s_path = min(dist_list)
-p_numb = (pattern_number[(dist_list.index(s_path))])
-
-
-
-
-def dtw(s, t):
-    n, m = len(s), len(t)
-    dtw_matrix = np.zeros((n+1, m+1))
-    for i in range(n+1):
-        for j in range(m+1):
-            dtw_matrix[i, j] = np.inf
-    dtw_matrix[0, 0] = 0
-    
-    for i in range(1, n+1):
-        for j in range(1, m+1):
-            cost = abs(s[i-1] - t[j-1])
-            # take last min from a square box
-            last_min = np.min([dtw_matrix[i-1, j], dtw_matrix[i, j-1], dtw_matrix[i-1, j-1]])
-            dtw_matrix[i, j] = cost + last_min
-    return dtw_matrix
-
-kp = []
-for val in range (len(AP[p_numb])): kp.append(AP[p_numb][val]['Distance'])
-track = dtw(test_pattern, kp)
-
-x = np.array(test_pattern)
-y = np.array(kp)
+        '''
         
-distance, path = fastdtw(x, y, dist=euclidean)
-print(distance)
-
-if p_numb in range(1125): dataset = DF1[0]
-elif p_numb in range(1125, 2175): dataset = DF2[0]
-elif p_numb in range(2175, 3230): dataset = DF3[0]
-elif p_numb in range(3230, 4288): dataset = DF4[0]
-elif p_numb in range(4288, 5421): dataset = DF5[0]
-elif p_numb in range(5421, 6499): dataset = DF6[0]
-elif p_numb in range(6499, 7634): dataset = DF7[0]
-elif p_numb in range(7634, 8642): dataset = DF8[0]
-elif p_numb in range(8642, 9682): dataset = DF9[0]
-elif p_numb in range(9682, 10709): dataset = DF10[0]
-elif p_numb in range(10709, 11825): dataset = DF11[0]
-elif p_numb in range(11825, 12897): dataset = DF12[0]
-elif p_numb in range(12897, 14016): dataset = DF13[0]
-elif p_numb in range(14016, 15151): dataset = DF14[0]
-elif p_numb in range(15151, 16266): dataset = DF15[0]
-elif p_numb in range(16266, 17389): dataset = DF16[0]
-elif p_numb in range(17389, 18465): dataset = DF17[0]
-elif p_numb in range(18465, 19509): dataset = DF18[0]
-elif p_numb in range(19509, 20601): dataset = DF19[0]
-elif p_numb in range(20601, 21628): dataset = DF20[0]
-
+        print(distance)
+        print(p_numb)
+        
+        if p_numb in range(1125): dataset = DF1[0]
+        elif p_numb in range(1125, 2175): dataset = DF2[0]
+        elif p_numb in range(2175, 3230): dataset = DF3[0]
+        elif p_numb in range(3230, 4288): dataset = DF4[0]
+        elif p_numb in range(4288, 5421): dataset = DF5[0]
+        elif p_numb in range(5421, 6499): dataset = DF6[0]
+        elif p_numb in range(6499, 7634): dataset = DF7[0]
+        elif p_numb in range(7634, 8642): dataset = DF8[0]
+        elif p_numb in range(8642, 9682): dataset = DF9[0]
+        elif p_numb in range(9682, 10709): dataset = DF10[0]
+        elif p_numb in range(10709, 11825): dataset = DF11[0]
+        elif p_numb in range(11825, 12897): dataset = DF12[0]
+        elif p_numb in range(12897, 14016): dataset = DF13[0]
+        elif p_numb in range(14016, 15151): dataset = DF14[0]
+        elif p_numb in range(15151, 16266): dataset = DF15[0]
+        elif p_numb in range(16266, 17389): dataset = DF16[0]
+        elif p_numb in range(17389, 18465): dataset = DF17[0]
+        elif p_numb in range(18465, 19509): dataset = DF18[0]
+        elif p_numb in range(19509, 20601): dataset = DF19[0]
+        elif p_numb in range(20601, 21628): dataset = DF20[0]
+        
+            
+        
+        
+        for x in range(len(dataset)):
+            if dataset.iloc[x]['Date'] == AP[p_numb][-1]['Date']:
+                    cATR = dataset.iloc[x]['ATR']
+                    move1 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+1]['Close']) * 10000, 2)
+                    move2 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+2]['Close']) * 10000, 2)
+                    move3 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+3]['Close']) * 10000, 2)
+                    move4 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+4]['Close']) * 10000, 2)
+                    move5 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+5]['Close']) * 10000, 2)
+                    
+                    if s_path <50:
+                        if abs(move1) >= cATR * 2:
+                            if move1 < 0:
+                                print('ATR is {}, Price ROSE by {} pips on the first move - {}'.format(cATR, abs(move1), w_size))
+                            else: print('ATR is {}, Price FELL by {} pips on the first move - {}'.format(cATR, abs(move1), w_size))
+                            
+                        elif abs(move2) >= cATR * 2:
+                            if move2 < 0:
+                                print('ATR is {}, Price ROSE by {} pips on the second move - {}'.format(cATR, abs(move2), w_size))
+                            else: print('ATR is {}, Price FELL by {} pips on the second move - {}'.format(cATR, abs(move2), w_size))
+                        
+                        elif abs(move3) >= cATR * 2:
+                            if move3 < 0:
+                                print('ATR is {}, Price ROSE by {} pips on the third move - {}'.format(cATR, abs(move3), w_size))
+                            else: print('ATR is {}, Price FELL by {} pips on the third move - {}'.format(cATR, abs(move3), w_size))
+                        
+                        elif abs(move4) >= cATR * 2:
+                            if move4 < 0:
+                                print('ATR is {}, Price ROSE by {} pips on the fourth move - {}'.format(cATR, abs(move4), w_size))
+                            else: print('ATR is {}, Price FELL by {} pips on the fouth move - {}'.format(cATR, abs(move4), w_size))
+                            
+                        elif abs(move5) >= cATR * 2:
+                            if move2 < 0:
+                                print('ATR is {}, Price ROSE by {} pips on the fifth move - {}'.format(cATR, abs(move5), w_size))
+                            else: print('ATR is {}, Price FELL by {} pips on the fifth move - {}'.format(cATR, abs(move5), w_size))
+                        
+                        else: print('NO TRADE!! - {}'.format(w_size))
+                    
+                    else:
+                        print('NO TRADE!! - {}'.format(w_size))
+                
     
-
-
-if pattern_test[0][-1]['Date'] != dataset_test.iloc[-1]['Date']:
-    print('NO TRADE!!')
-else:
-    for x in range(len(dataset)):
-        if dataset.iloc[x]['Date'] == AP[p_numb][-1]['Date']:
-            cATR = dataset.iloc[x]['ATR']
-            move1 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+1]['Close']) * 10000, 2)
-            move2 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+2]['Close']) * 10000, 2)
-            move3 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+3]['Close']) * 10000, 2)
-            move4 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+4]['Close']) * 10000, 2)
-            move5 = round((dataset.iloc[x]['Close'] - dataset.iloc[x+5]['Close']) * 10000, 2)
-            
-            if s_path <10:
-                if abs(move1) >= cATR * 2:
-                    if move1 < 0:
-                        print('ATR is {}, Price ROSE by {} pips on the first move'.format(cATR, abs(move1)))
-                    else: print('ATR is {}, Price FELL by {} pips on the first move'.format(cATR, abs(move1)))
-                    
-                elif abs(move2) >= cATR * 2:
-                    if move2 < 0:
-                        print('ATR is {}, Price ROSE by {} pips on the second move'.format(cATR, abs(move2)))
-                    else: print('ATR is {}, Price FELL by {} pips on the second move'.format(cATR, abs(move2)))
-                
-                elif abs(move3) >= cATR * 2:
-                    if move3 < 0:
-                        print('ATR is {}, Price ROSE by {} pips on the third move'.format(cATR, abs(move3)))
-                    else: print('ATR is {}, Price FELL by {} pips on the third move'.format(cATR, abs(move3)))
-                
-                elif abs(move4) >= cATR * 2:
-                    if move4 < 0:
-                        print('ATR is {}, Price ROSE by {} pips on the fourth move'.format(cATR, abs(move4)))
-                    else: print('ATR is {}, Price FELL by {} pips on the fouth move'.format(cATR, abs(move4)))
-                    
-                elif abs(move5) >= cATR * 2:
-                    if move2 < 0:
-                        print('ATR is {}, Price ROSE by {} pips on the fifth move'.format(cATR, abs(move5)))
-                    else: print('ATR is {}, Price FELL by {} pips on the fifth move'.format(cATR, abs(move5)))
-                
-                else: print('NO TRADE!!')
-            
-            else:
-                print('NO TRADE!!')
-
+        
+test('AU.csv', 60)
+# test('AU.csv', 70)
+test('AU.csv', 80)
+# test('AU.csv', 90)
+test('AU.csv', 100)
+# test('AU.csv', 110)
+test('AU.csv', 120)
